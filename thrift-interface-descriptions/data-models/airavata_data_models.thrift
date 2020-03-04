@@ -36,11 +36,12 @@ include "user-tenant-group-models/user_profile_model.thrift"
 include "user-tenant-group-models/group_manager_model.thrift"
 include "user-tenant-group-models/tenant_profile_model.thrift"
 include "credential-store-models/credential_store_data_models.thrift"
+include "resource-catalog-models/gateway_groups_model.thrift"
 
 namespace java org.apache.airavata.model
 namespace php Airavata.Model
 namespace cpp apache.airavata.model
-namespace py apache.airavata.model
+namespace py airavata.model
 
 /*
  * This file describes the definitions of the Airavata Execution Data Structures. Each of the

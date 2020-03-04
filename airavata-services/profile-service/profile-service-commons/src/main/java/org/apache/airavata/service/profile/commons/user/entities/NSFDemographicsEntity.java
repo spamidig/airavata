@@ -1,4 +1,4 @@
-/*
+/**
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,8 +16,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- *
-*/
+ */
 package org.apache.airavata.service.profile.commons.user.entities;
 
 import javax.persistence.*;
@@ -54,7 +53,7 @@ public class NSFDemographicsEntity {
 
     @ElementCollection
     @CollectionTable(name="NSF_DEMOGRAPHIC_ETHNICITY", joinColumns = @JoinColumn(name="AIRAVATA_INTERNAL_USER_ID"))
-    @Column(name = "ETHNICITIES")
+    @Column(name = "ETHNICITY")
     public List<String> getEthnicities() {
         return ethnicities;
     }
@@ -65,7 +64,7 @@ public class NSFDemographicsEntity {
 
     @ElementCollection
     @CollectionTable(name="NSF_DEMOGRAPHIC_RACE", joinColumns = @JoinColumn(name="AIRAVATA_INTERNAL_USER_ID"))
-    @Column(name = "RACES")
+    @Column(name = "RACE")
     public List<String> getRaces() {
         return races;
     }
@@ -76,7 +75,7 @@ public class NSFDemographicsEntity {
 
     @ElementCollection
     @CollectionTable(name="NSF_DEMOGRAPHIC_DISABILITY", joinColumns = @JoinColumn(name="AIRAVATA_INTERNAL_USER_ID"))
-    @Column(name = "DISABILITIES")
+    @Column(name = "DISABILITY")
     public List<String> getDisabilities() {
         return disabilities;
     }

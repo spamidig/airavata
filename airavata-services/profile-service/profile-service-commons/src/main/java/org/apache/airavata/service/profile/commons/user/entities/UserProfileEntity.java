@@ -1,4 +1,4 @@
-/*
+/**
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,8 +16,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- *
-*/
+ */
 package org.apache.airavata.service.profile.commons.user.entities;
 
 import javax.persistence.*;
@@ -53,6 +52,7 @@ public class UserProfileEntity {
     private List<String> emails;
     private List<String> phones;
     private NSFDemographicsEntity nsfDemographics;
+    private CustomizedDashboardEntity customizedDashboardEntity;
 
     @Id
     @Column(name = "AIRAVATA_INTERNAL_USER_ID")
@@ -93,7 +93,7 @@ public class UserProfileEntity {
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name="USER_PROFILE_EMAIL", joinColumns = @JoinColumn(name="AIRAVATA_INTERNAL_USER_ID"))
-    @Column(name = "EMAILS")
+    @Column(name = "EMAIL")
     public List<String> getEmails() {
         return emails;
     }
@@ -158,7 +158,7 @@ public class UserProfileEntity {
 
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(name="USER_PROFILE_PHONE", joinColumns = @JoinColumn(name="AIRAVATA_INTERNAL_USER_ID"))
-    @Column(name = "PHONES")
+    @Column(name = "PHONE")
     public List<String> getPhones() {
         return phones;
     }
@@ -289,6 +289,16 @@ public class UserProfileEntity {
 
     public void setNsfDemographics(NSFDemographicsEntity nsfDemographics) {
         this.nsfDemographics = nsfDemographics;
+    }
+
+    @OneToOne(targetEntity = CustomizedDashboardEntity.class, cascade = CascadeType.ALL,
+            mappedBy = "userProfileEntity", fetch = FetchType.EAGER)
+    public CustomizedDashboardEntity getCustomizedDashboardEntity() {
+        return customizedDashboardEntity;
+    }
+
+    public void setCustomizedDashboardEntity(CustomizedDashboardEntity customizedDashboardEntity) {
+        this.customizedDashboardEntity = customizedDashboardEntity;
     }
 
     @PrePersist

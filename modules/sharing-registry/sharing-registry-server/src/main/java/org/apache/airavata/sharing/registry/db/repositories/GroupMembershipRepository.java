@@ -72,11 +72,13 @@ public class GroupMembershipRepository extends AbstractRepository<GroupMembershi
                 "GM." + DBConstants.GroupMembershipTable.DOMAIN_ID + " = G." + DBConstants.UserGroupTable.DOMAIN_ID + " AND " +
                 "GM." + DBConstants.GroupMembershipTable.DOMAIN_ID+"=:"+DBConstants.GroupMembershipTable.DOMAIN_ID + " AND "+
                 "GM." + DBConstants.GroupMembershipTable.CHILD_ID+"=:"+DBConstants.GroupMembershipTable.CHILD_ID + " AND GM." + DBConstants.GroupMembershipTable.CHILD_TYPE
-                + "=:" + DBConstants.GroupMembershipTable.CHILD_TYPE;
+                + "=:" + DBConstants.GroupMembershipTable.CHILD_TYPE + " AND " +
+                "G." + DBConstants.UserGroupTable.GROUP_CARDINALITY + "=:" + DBConstants.UserGroupTable.GROUP_CARDINALITY;
         Map<String,Object> queryParameters = new HashMap<>();
         queryParameters.put(DBConstants.GroupMembershipTable.DOMAIN_ID, domainId);
         queryParameters.put(DBConstants.GroupMembershipTable.CHILD_ID, userId);
         queryParameters.put(DBConstants.GroupMembershipTable.CHILD_TYPE, GroupChildType.USER.toString());
+        queryParameters.put(DBConstants.UserGroupTable.GROUP_CARDINALITY, GroupCardinality.MULTI_USER.name());
         UserGroupRepository userGroupRepository = new UserGroupRepository();
         List<UserGroup> groups = userGroupRepository.select(queryString, queryParameters, 0, -1);
         return groups;
@@ -92,7 +94,7 @@ public class GroupMembershipRepository extends AbstractRepository<GroupMembershi
         while (temp.size() > 0){
             GroupMembership gm = temp.pop();
             filters = new HashMap<>();
-            filters.put(DBConstants.GroupMembershipTable.CHILD_ID, gm.parentId);
+            filters.put(DBConstants.GroupMembershipTable.CHILD_ID, gm.getParentId());
             filters.put(DBConstants.GroupMembershipTable.DOMAIN_ID, domainId);
             select(filters, 0, -1).stream().forEach(m -> temp.addLast(m));
             finalParentGroups.add(gm);

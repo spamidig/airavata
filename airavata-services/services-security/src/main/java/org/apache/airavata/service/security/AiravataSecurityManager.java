@@ -1,4 +1,4 @@
-/*
+/**
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,7 +16,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- *
  */
 package org.apache.airavata.service.security;
 
@@ -40,4 +39,21 @@ public interface AiravataSecurityManager {
      * @throws AiravataSecurityException
      */
     public boolean isUserAuthorized(AuthzToken authzToken, Map<String, String> metaData) throws AiravataSecurityException;
+
+
+    /**
+     * Return an AuthzToken that has the appropriate access to manage user's in the IAM service.
+     * @param gatewayId
+     * @return
+     * @throws AiravataSecurityException
+     */
+    public AuthzToken getUserManagementServiceAccountAuthzToken(String gatewayId) throws AiravataSecurityException;
+
+    /**
+     * Get OpenID Connect user profile information from the given AuthzToken.
+     * @param authzToken
+     * @return
+     * @throws AiravataSecurityException
+     */
+    public UserInfo getUserInfoFromAuthzToken(AuthzToken authzToken) throws AiravataSecurityException;
 }

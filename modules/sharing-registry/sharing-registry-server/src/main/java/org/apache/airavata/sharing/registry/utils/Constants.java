@@ -1,4 +1,4 @@
-/*
+/**
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,8 +16,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- *
-*/
+ */
 package org.apache.airavata.sharing.registry.utils;
 
 import org.apache.airavata.common.utils.DBEventService;
@@ -33,6 +32,10 @@ public class Constants {
      * List of publishers in which sharing service is interested.
      * Add publishers as required
      */
-    public static final List<String> PUBLISHERS = new ArrayList<String>(){{add(DBEventService.USER_PROFILE.toString());
-        add(DBEventService.TENANT.toString());};};
+    public static final List<String> PUBLISHERS = new ArrayList<String>(){{
+        add(DBEventService.USER_PROFILE.toString());
+        add(DBEventService.TENANT.toString());
+        add(DBEventService.REGISTRY.toString());
+        add(DBEventService.IAM_ADMIN.toString());
+    }};
 }

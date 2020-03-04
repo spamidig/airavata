@@ -23,7 +23,7 @@ include "../../airavata-apis/airavata_commons.thrift"
 namespace java org.apache.airavata.model.data.movement
 namespace php Airavata.Model.Data.Movement
 namespace cpp apache.airavata.model.data.movement
-namespace py apache.airavata.model.data.movement
+namespace py airavata.model.data.movement
 
 enum DMType {
     COMPUTE_RESOURCE,
@@ -148,6 +148,9 @@ struct DataMovementInterface {
     1: required string dataMovementInterfaceId,
     2: required DataMovementProtocol dataMovementProtocol,
     3: required i32 priorityOrder = 0,
+    4: optional i64 creationTime,
+    5: optional i64 updateTime,
+    6: optional string storageResourceId
 }
 
 

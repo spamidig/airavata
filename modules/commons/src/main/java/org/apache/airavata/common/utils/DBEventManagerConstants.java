@@ -1,4 +1,4 @@
-/*
+/**
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,8 +16,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- *
-*/
+ */
 package org.apache.airavata.common.utils;
 
 import org.apache.airavata.model.dbevent.EntityType;
@@ -62,20 +61,6 @@ public class DBEventManagerConstants {
      */
     public static String getQueueName(String dbEventService) {
         return getQueueName(getDBEventService(dbEventService));
-    }
-
-    /**
-     * Get serviceName from EntityType
-     * @param entityType
-     * @return
-     */
-    public static String getDbEventServiceName(EntityType entityType) {
-        for (DBEventService service : DBEventService.values()) {
-            if (service.name().equals(entityType.name())) {
-                return service.toString();
-            }
-        }
-        return null;
     }
 
     /**

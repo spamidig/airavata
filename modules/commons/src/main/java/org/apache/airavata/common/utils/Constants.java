@@ -39,6 +39,8 @@ public final class Constants {
     public static final String KEYSTORE_PASSWORD = "keystore.password";
     public static final String TLS_CLIENT_TIMEOUT = "TLS.client.timeout";
 
+    public static final String IS_SHARING_TLS_ENABLED = "sharing.tls.enabled";
+
     public static final String API_METHOD_NAME = "api.method.name";
 
     //constants in XACML authorization response.
@@ -55,6 +57,8 @@ public final class Constants {
 
     public static final String IN_MEMORY_CACHE_SIZE = "in.memory.cache.size";
 
+    public static final String LOCAL_DATA_LOCATION = "local.data.location";
+
     //Names of the attributes that could be passed in the AuthzToken's claims map.
     public static final String USER_NAME = "userName";
     public static final String GATEWAY_ID = "gatewayID";
@@ -65,4 +69,6 @@ public final class Constants {
     public static final String TRUSTED_CERTIFICATE_SYSTEM_PROPERTY = "X509_CERT_DIR";
 
     public static final String NEWLINE = System.getProperty("line.separator");
+
+    public static final String ENABLE_STREAMING_TRANSFER = "enable.streaming.transfer";
 }

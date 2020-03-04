@@ -24,7 +24,7 @@ include "data_movement_models.thrift"
 namespace java org.apache.airavata.model.appcatalog.storageresource
 namespace php Airavata.Model.AppCatalog.StorageResource
 namespace cpp apache.airavata.model.appcatalog.storageresource
-namespace py apache.airavata.model.appcatalog.storageresource
+namespace py airavata.model.appcatalog.storageresource
 
 /**
  * Storage Resource Description
@@ -49,4 +49,6 @@ struct StorageResourceDescription {
     3: optional string storageResourceDescription,
     4: optional bool enabled,
     5: optional list<data_movement_models.DataMovementInterface> dataMovementInterfaces,
+    6: optional i64 creationTime,
+    7: optional i64 updateTime,
 }

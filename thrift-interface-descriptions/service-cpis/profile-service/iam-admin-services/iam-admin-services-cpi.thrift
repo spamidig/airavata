@@ -29,24 +29,26 @@ include "../../../data-models/experiment-catalog-models/workspace_model.thrift"
 include "../../../data-models/user-tenant-group-models/user_profile_model.thrift"
 include "../../../data-models/credential-store-models/credential_store_data_models.thrift"
 include "iam_admin_services_cpi_errors.thrift"
+include "../../../base-api/base_api.thrift"
 
 namespace java org.apache.airavata.service.profile.iam.admin.services.cpi
 namespace php Airavata.Service.Iam.Admin.Services.CPI
+namespace py airavata.service.profile.iam.admin.services.cpi
 
-const string IAM_ADMIN_SERVICES_CPI_VERSION = "0.17"
+const string IAM_ADMIN_SERVICES_CPI_VERSION = "0.18.0"
 const string IAM_ADMIN_SERVICES_CPI_NAME = "IamAdminServices"
 
-service IamAdminServices {
-
-    string getAPIVersion (1: required security_model.AuthzToken authzToken)
-                       throws (1: iam_admin_services_cpi_errors.IamAdminServicesException Idse,
-                               2: airavata_errors.AuthorizationException ae)
-
+service IamAdminServices extends base_api.BaseAPI {
 
     workspace_model.Gateway setUpGateway (1: required security_model.AuthzToken authzToken,
                        2: required workspace_model.Gateway gateway)
                     throws (1: iam_admin_services_cpi_errors.IamAdminServicesException Idse,
                             2: airavata_errors.AuthorizationException ae)
+
+    bool isUsernameAvailable(1: required security_model.AuthzToken authzToken,
+                             2: required string username)
+                        throws (1: iam_admin_services_cpi_errors.IamAdminServicesException Idse,
+                                                    2: airavata_errors.AuthorizationException ae)
 
     bool registerUser(1: required security_model.AuthzToken authzToken,
                         2: required string username,
@@ -59,6 +61,28 @@ service IamAdminServices {
 
     bool enableUser(1: required security_model.AuthzToken authzToken,
                         2: required string username)
+                            throws (1: iam_admin_services_cpi_errors.IamAdminServicesException Idse,
+                                                        2: airavata_errors.AuthorizationException ae)
+
+    bool isUserEnabled(1: required security_model.AuthzToken authzToken,
+                        2: required string username)
+                            throws (1: iam_admin_services_cpi_errors.IamAdminServicesException Idse,
+                                                        2: airavata_errors.AuthorizationException ae)
+
+    bool isUserExist(1: required security_model.AuthzToken authzToken,
+                     2: required string username)
+                            throws (1: iam_admin_services_cpi_errors.IamAdminServicesException Idse,
+                                                        2: airavata_errors.AuthorizationException ae)
+
+    user_profile_model.UserProfile getUser(1: required security_model.AuthzToken authzToken,
+                                           2: required string username)
+                            throws (1: iam_admin_services_cpi_errors.IamAdminServicesException Idse,
+                                                        2: airavata_errors.AuthorizationException ae)
+
+    list<user_profile_model.UserProfile> getUsers(1: required security_model.AuthzToken authzToken,
+                                                  2: required i32 offset,
+                                                  3: required i32 limit,
+                                                  4: optional string search)
                             throws (1: iam_admin_services_cpi_errors.IamAdminServicesException Idse,
                                                         2: airavata_errors.AuthorizationException ae)
 
@@ -79,6 +103,11 @@ service IamAdminServices {
                            2: required user_profile_model.UserProfile userDetails)
         throws (1: iam_admin_services_cpi_errors.IamAdminServicesException Idse,
                 2: airavata_errors.AuthorizationException ae)
+
+    bool deleteUser(1: required security_model.AuthzToken authzToken,
+                                2: required string username)
+                                throws (1: iam_admin_services_cpi_errors.IamAdminServicesException Idse,
+                                                            2: airavata_errors.AuthorizationException ae)
 
     bool addRoleToUser(1: required security_model.AuthzToken authzToken,
                         2: required string username,

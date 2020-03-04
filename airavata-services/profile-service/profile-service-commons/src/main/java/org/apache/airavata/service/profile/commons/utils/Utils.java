@@ -1,4 +1,4 @@
-/*
+/**
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,7 +16,6 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- *
  */
 package org.apache.airavata.service.profile.commons.utils;
 
@@ -81,31 +80,6 @@ public class Utils {
             logger.error(e.getMessage(), e);
             return "true";
         }
-    }
-
-    public static String getDBType(){
-        try{
-            String jdbcURL = getJDBCURL();
-            String cleanURI = jdbcURL.substring(5);
-            URI uri = URI.create(cleanURI);
-            return uri.getScheme();
-        } catch (Exception e) {
-            logger.error(e.getMessage(), e);
-            return null;
-        }
-    }
-
-    public static boolean isDerbyStartEnabled(){
-        try {
-            String s = ServerSettings.getSetting(JPAConstants.KEY_DERBY_START_ENABLE);
-            if("true".equals(s)){
-                return true;
-            }
-        } catch (ApplicationSettingsException e) {
-            logger.error(e.getMessage(), e);
-            return false;
-        }
-        return false;
     }
 
     public static String getJDBCUser(){

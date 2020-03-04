@@ -1,4 +1,4 @@
-/*
+/**
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,28 +16,34 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- *
-*/
+ */
 package org.apache.airavata.registry.api.service.messaging;
 
 import org.apache.airavata.common.exception.AiravataException;
 import org.apache.airavata.common.exception.ApplicationSettingsException;
+import org.apache.airavata.common.utils.DBEventService;
 import org.apache.airavata.common.utils.ServerSettings;
+import org.apache.airavata.common.utils.ThriftClientPool;
 import org.apache.airavata.common.utils.ThriftUtils;
 import org.apache.airavata.messaging.core.MessageContext;
 import org.apache.airavata.messaging.core.MessageHandler;
+import org.apache.airavata.messaging.core.util.DBEventPublisherUtils;
+import org.apache.airavata.model.dbevent.CrudType;
 import org.apache.airavata.model.dbevent.DBEventMessage;
 import org.apache.airavata.model.dbevent.DBEventPublisherContext;
+import org.apache.airavata.model.dbevent.EntityType;
 import org.apache.airavata.model.error.DuplicateEntryException;
 import org.apache.airavata.model.user.UserProfile;
 import org.apache.airavata.model.workspace.Gateway;
+import org.apache.airavata.model.workspace.Project;
 import org.apache.airavata.registry.api.RegistryService;
-import org.apache.airavata.registry.api.client.RegistryServiceClientFactory;
 import org.apache.airavata.registry.api.exception.RegistryServiceException;
-import org.apache.airavata.registry.api.service.util.Constants;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.List;
 
 /**
  * Created by goshenoy on 3/30/17.
@@ -45,15 +51,25 @@ import org.slf4j.LoggerFactory;
 public class RegistryServiceDBEventHandler implements MessageHandler {
 
     private static final Logger logger = LoggerFactory.getLogger(RegistryServiceDBEventHandler.class);
-    private final RegistryService.Client registryClient;
+    private final ThriftClientPool<RegistryService.Client> registryClientPool;
+    private DBEventPublisherUtils dbEventPublisherUtils = new DBEventPublisherUtils(DBEventService.REGISTRY);
 
     public RegistryServiceDBEventHandler() throws ApplicationSettingsException, RegistryServiceException {
-        // get server host, port
-        final int serverPort = Integer.parseInt(ServerSettings.getSetting(Constants.REGISTRY_SERVER_PORT, "8960"));
-        final String serverHost = ServerSettings.getSetting(Constants.REGISTRY_SERVER_HOST);
 
-        // construct thrift-client
-        registryClient = RegistryServiceClientFactory.createRegistryClient(serverHost, serverPort);
+        GenericObjectPoolConfig<RegistryService.Client> poolConfig = new GenericObjectPoolConfig<>();
+        poolConfig.setMaxTotal(5);
+        poolConfig.setMinIdle(1);
+        poolConfig.setBlockWhenExhausted(true);
+        poolConfig.setTestOnBorrow(true);
+        poolConfig.setTestWhileIdle(true);
+        // must set timeBetweenEvictionRunsMillis since eviction doesn't run unless that is positive
+        poolConfig.setTimeBetweenEvictionRunsMillis(5L * 60L * 1000L);
+        poolConfig.setNumTestsPerEvictionRun(10);
+        poolConfig.setMaxWaitMillis(3000);
+
+        registryClientPool = new ThriftClientPool<>(
+                tProtocol -> new RegistryService.Client(tProtocol), poolConfig, ServerSettings.getRegistryServerHost(),
+                Integer.parseInt(ServerSettings.getRegistryServerPort()));
     }
 
     @Override
@@ -71,6 +87,7 @@ public class RegistryServiceDBEventHandler implements MessageHandler {
             DBEventPublisherContext publisherContext = dbEventMessage.getMessageContext().getPublisher().getPublisherContext();
             logger.info("RegistryService, Replicated Entity: " + publisherContext.getEntityType());
 
+            RegistryService.Client registryClient = registryClientPool.getResource();
             // this try-block is mainly for catching DuplicateEntryException
             try {
                 // check type of entity-type
@@ -121,7 +138,15 @@ public class RegistryServiceDBEventHandler implements MessageHandler {
                         switch (publisherContext.getCrudType()) {
                             case CREATE: {
                                 logger.info("Replicating addUser in Registry.");
-                                registryClient.addUser(userProfile);
+                                if (!registryClient.isUserExists(userProfile.getGatewayId(), userProfile.getUserId())) {
+                                    registryClient.addUser(userProfile);
+                                }
+                                Project defaultProject = createDefaultProject(registryClient, userProfile);
+                                if (defaultProject != null) {
+
+                                    // Publish new PROJECT event (sharing service will listen for it and register this as a shared Entity)
+                                    dbEventPublisherUtils.publish(EntityType.PROJECT, CrudType.CREATE, defaultProject);
+                                }
                                 logger.info("addUser Replication Success!");
                                 break;
                             }
@@ -145,10 +170,14 @@ public class RegistryServiceDBEventHandler implements MessageHandler {
                         logger.error("Handler not defined for Entity: " + publisherContext.getEntityType());
                     }
                 }
+                registryClientPool.returnResource(registryClient);
             } catch (DuplicateEntryException ex) {
                 // log this exception and proceed (do nothing)
                 // this exception is thrown mostly when messages are re-consumed, hence ignore
                 logger.warn("DuplicateEntryException while consuming db-event message, ex: " + ex.getMessage(), ex);
+            } catch (Exception ex) {
+                registryClientPool.returnBrokenResource(registryClient);
+                throw ex;
             }
             // send ack for received message
             logger.info("RegistryServiceDBEventHandler | Sending ack. Message Delivery Tag: " + messageContext.getDeliveryTag());
@@ -159,6 +188,26 @@ public class RegistryServiceDBEventHandler implements MessageHandler {
             logger.error("Error fetching application settings: " + ex, ex);
         } catch (AiravataException ex) {
             logger.error("Error sending ack. Message Delivery Tag: " + messageContext.getDeliveryTag(), ex);
+        } catch (Throwable t) {
+            // Catch all exceptions types otherwise RabbitMQ's DefaultExceptionHandler will close the channel
+            logger.error("Failed to handle message: " + t, t);
         }
+    }
+
+    private Project createDefaultProject(RegistryService.Client registryClient, UserProfile userProfile) throws TException {
+        // Just retrieve the first project to see if the user has any projects
+        List<Project> projects = registryClient.getUserProjects(userProfile.getGatewayId(), userProfile.getUserId(), 1, 0);
+        if (projects.isEmpty()) {
+            Project defaultProject = new Project();
+            defaultProject.setOwner(userProfile.getUserId());
+            defaultProject.setName("Default Project");
+            defaultProject.setGatewayId(userProfile.getGatewayId());
+            defaultProject.setDescription("This is the default project for user " + userProfile.getUserId());
+            String defaultProjectId = registryClient.createProject(userProfile.getGatewayId(), defaultProject);
+            logger.info("Default project created for user {}", userProfile.getUserId());
+            defaultProject.setProjectID(defaultProjectId);
+            return defaultProject;
+        }
+        return null;
     }
 }

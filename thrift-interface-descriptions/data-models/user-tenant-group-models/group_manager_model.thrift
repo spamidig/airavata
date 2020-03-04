@@ -23,20 +23,24 @@
  namespace java org.apache.airavata.model.group
  namespace php Airavata.Model.Group
  namespace cpp apache.airavata.model.group
- namespace py apache.airavata.model.group
+ namespace py airavata.model.group
 
 
 enum ResourceType {
     PROJECT,
     EXPERIMENT,
     DATA,
+    APPLICATION_DEPLOYMENT,
+    GROUP_RESOURCE_PROFILE,
+    CREDENTIAL_TOKEN,
     OTHER
 }
 
 enum ResourcePermissionType {
     WRITE,
     READ,
-    OWNER
+    OWNER,
+    MANAGE_SHARING
 }
 
 struct GroupModel{
@@ -44,5 +48,9 @@ struct GroupModel{
     2: optional string name,
     3: optional string ownerId,
     4: optional string description,
-    5: optional list<string> members
+    5: optional list<string> members,
+    /**
+     * Note: each admin must also be a member of the group.
+     */
+    6: optional list<string> admins,
 }

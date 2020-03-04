@@ -21,13 +21,9 @@
 
 namespace java org.apache.airavata.model.credential.store
 namespace php Airavata.Model.Credential.Store
+namespace py airavata.model.credential.store
 
 const string DEFAULT_ID = "DO_NOT_SET_AT_CLIENTS"
-
-enum CredentialOwnerType {
-    GATEWAY,
-    USER
-}
 
 struct SSHCredential {
     1: required string gatewayId,
@@ -38,7 +34,6 @@ struct SSHCredential {
     6: optional i64 persistedTime,
     7: optional string token,
     8: optional string description,
-    9: optional CredentialOwnerType credentialOwnerType = CredentialOwnerType.GATEWAY
 }
 
 /**
@@ -54,6 +49,10 @@ enum SummaryType{
 struct CredentialSummary {
     1: required SummaryType type,
     2: required string gatewayId,
+    /**
+     * The username corresponds to the Credential's `portalUserName` which is the username of the user that
+     * created the credential.
+     */
     3: required string username,
     4: optional string publicKey,
     5: optional i64 persistedTime,

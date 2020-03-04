@@ -23,7 +23,7 @@ include "../resource-catalog-models/compute_resource_model.thrift"
 namespace java org.apache.airavata.model.application.io
 namespace php Airavata.Model.Application.Io
 namespace cpp apache.airavata.model.application.io
-namespace py apache.airavata.model.application.io
+namespace py airavata.model.application.io
 
 /**
  * Data Types supported in Airavata. The primitive data types
@@ -119,4 +119,5 @@ struct OutputDataObjectType {
     9: optional string searchQuery,
     10: optional bool outputStreaming,
     11: optional string storageResourceId,
+    12: optional string metaData,
 }

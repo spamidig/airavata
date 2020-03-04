@@ -20,7 +20,6 @@
 
 ---
 pga_repo: "https://github.com/apache/airavata-php-gateway.git"
-git_branch: "master"
 user: "pga"
 group: "pga"
 doc_root_dir: "/var/www/portals/testdrive"
@@ -28,13 +27,9 @@ vhost_servername: "testdrive.airavata.org"
 vhost_serveralias: "www.testdrive.airavata.org"
 #vhost_servername: "beta.testdrive.airavata.org"
 vhost_ssl: True
-# TODO: have Ansible manage these files as well
-ssl_certificate_file: "/etc/pki/tls/certs/testdrive_airavata_org_cert.cer"
-ssl_certificate_chain_file: "/etc/pki/tls/certs/testdrive_airavata_org_interm.cer"
-ssl_certificate_key_file: "/etc/pki/tls/private/testdrive-airavata.key"
-#ssl_certificate_file: "/etc/letsencrypt/live/beta.testdrive.airavata.org/cert.pem"
-#ssl_certificate_chain_file: "/etc/letsencrypt/live/beta.testdrive.airavata.org/fullchain.pem"
-#ssl_certificate_key_file: "/etc/letsencrypt/live/beta.testdrive.airavata.org/privkey.pem"
+ssl_certificate_file: "/etc/letsencrypt/live/testdrive.airavata.org/cert.pem"
+ssl_certificate_chain_file: "/etc/letsencrypt/live/testdrive.airavata.org/fullchain.pem"
+ssl_certificate_key_file: "/etc/letsencrypt/live/testdrive.airavata.org/privkey.pem"
 
 ## Keycloak related variables
 tenant_domain: "{{ gateway_id }}"
@@ -67,4 +62,5 @@ portal_email_password: "{{ vault_portal_email_password }}"
 #portal_theme: "base"
 #portal_theme_repo: ""
 portal_title: "Airavata Test Drive"
+pga_google_analytics_id: "UA-111528347-2"
 ...

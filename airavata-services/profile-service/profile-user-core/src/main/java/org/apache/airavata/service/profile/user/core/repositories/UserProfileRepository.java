@@ -1,4 +1,4 @@
-/*
+/**
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,8 +16,7 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- *
-*/
+ */
 package org.apache.airavata.service.profile.user.core.repositories;
 
 import org.apache.airavata.model.user.UserProfile;
@@ -37,8 +36,8 @@ import java.util.Map;
 public class UserProfileRepository extends AbstractRepository<UserProfile, UserProfileEntity, String> {
     private final static Logger logger = LoggerFactory.getLogger(UserProfileRepository.class);
 
-    public UserProfileRepository(Class<UserProfile> thriftGenericClass, Class<UserProfileEntity> dbEntityGenericClass) {
-        super(thriftGenericClass, dbEntityGenericClass);
+    public UserProfileRepository() {
+        super(UserProfile.class, UserProfileEntity.class);
     }
 
     @Override
@@ -63,10 +62,15 @@ public class UserProfileRepository extends AbstractRepository<UserProfile, UserP
 
     public List<UserProfile> getAllUserProfilesInGateway(String gatewayId, int offset, int limit)  {
 
-        Map<String, Object> queryParam = new HashMap<String, Object>();
-        queryParam.put(UserProfile._Fields.GATEWAY_ID.getFieldName(), gatewayId);
+        Map<String, Object> queryParams = new HashMap<String, Object>();
+        queryParams.put(UserProfile._Fields.GATEWAY_ID.getFieldName(), gatewayId);
 
-        List<UserProfile> resultList = select(QueryConstants.FIND_ALL_USER_PROFILES_BY_GATEWAY_ID, limit, offset, queryParam);
+        List<UserProfile> resultList = null;
+        if (limit > 0) {
+            resultList = select(QueryConstants.FIND_ALL_USER_PROFILES_BY_GATEWAY_ID, limit, offset, queryParams);
+        } else {
+            resultList = select(QueryConstants.FIND_ALL_USER_PROFILES_BY_GATEWAY_ID, queryParams);
+        }
 
         return  resultList;
     }
@@ -81,6 +85,10 @@ public class UserProfileRepository extends AbstractRepository<UserProfile, UserP
         throw new UnsupportedOperationException("Please use updateUserProfile instead");
     }
 
+    public UserProfile createUserProfile(UserProfile userProfile) {
+        return updateUserProfile(userProfile, null);
+    }
+
     public UserProfile createUserProfile(UserProfile userProfile, Runnable postUpdateAction) {
         return updateUserProfile(userProfile, postUpdateAction);
     }
@@ -91,7 +99,9 @@ public class UserProfileRepository extends AbstractRepository<UserProfile, UserP
         UserProfileEntity entity = mapper.map(userProfile, UserProfileEntity.class);
         UserProfileEntity persistedCopy = JPAUtils.execute(entityManager -> {
             UserProfileEntity result = entityManager.merge(entity);
-            postUpdateAction.run();
+            if (postUpdateAction != null) {
+                postUpdateAction.run();
+            }
             return result;
         });
         return mapper.map(persistedCopy, UserProfile.class);

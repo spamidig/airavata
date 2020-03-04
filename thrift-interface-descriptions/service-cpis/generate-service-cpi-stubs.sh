@@ -1,19 +1,23 @@
 #! /usr/bin/env bash
-
-# Licensed to the Apache Software Foundation (ASF) under one or more
-# contributor license agreements.  See the NOTICE file distributed with
-# this work for additional information regarding copyright ownership.
-# The ASF licenses this file to You under the Apache License, Version 2.0
-# (the "License"); you may not use this file except in compliance with
-# the License.  You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
 #
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
 
 # This script will generate/regenerate the thrift stubs for Airavata Services: Profile Service.
 
@@ -39,9 +43,11 @@ then
 	exit 0
 fi
 
-REQUIRED_THRIFT_VERSION='0.9.3'
+REQUIRED_THRIFT_VERSION='0.10.0'
 THRIFT_DOCKER_IMAGE='thrift'
 THRIFT_NATIVE="false"
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+PARENT_DIR=`dirname "$SCRIPT_DIR"`
 
 setup() {
     if [[ $THRIFT_NATIVE == "true" ]]; then
@@ -50,10 +56,10 @@ setup() {
         else
           THRIFT_EXEC=/usr/local/bin/thrift
         fi
-        BASEDIR=""
+        BASEDIR="$PARENT_DIR"
     else
-        THRIFT_EXEC="docker run --rm -v $PWD/..:/data $THRIFT_DOCKER_IMAGE:$REQUIRED_THRIFT_VERSION thrift"
-        BASEDIR="/data/service-cpis/"
+        THRIFT_EXEC="docker run --rm -v $PARENT_DIR:/data $THRIFT_DOCKER_IMAGE:$REQUIRED_THRIFT_VERSION thrift"
+        BASEDIR="/data"
     fi
 
     VERSION=$($THRIFT_EXEC -version 2>/dev/null | grep -F "${REQUIRED_THRIFT_VERSION}" |  wc -l)
@@ -64,15 +70,17 @@ setup() {
     fi
 
     # Global Constants used across the script
-    BASE_TARGET_DIR='target'
+    BASE_TARGET_DIR="$SCRIPT_DIR/target"
 
-    PROFILE_SERVICE_THRIFT_FILE="${BASEDIR}profile-service/profile-service-cpi.thrift"
+    PROFILE_SERVICE_THRIFT_FILE="${BASEDIR}/service-cpis/profile-service/profile-service-cpi.thrift"
     PROFILE_SERVICE_SRC_DIR='../../airavata-services/profile-service/profile-service-stubs/src/main/java'
+
+    BASE_API_SRC_DIR='../../airavata-api/airavata-base-api/src/main/java'
 
     # Initialize the thrift arguments.
     #  Since most of the Airavata API and Data Models have includes, use recursive option by default.
     #  Generate all the files in target directory
-    THRIFT_ARGS="-r -o ${BASEDIR}${BASE_TARGET_DIR}"
+    THRIFT_ARGS="-r -o ${BASEDIR}/service-cpis/target"
     # Ensure the required target directories exists, if not create.
     mkdir -p ${BASE_TARGET_DIR}
 }
@@ -95,22 +103,23 @@ add_license_header() {
     # For each java file within the generated directory, add the ASF V2 LICENSE header
     for f in $(find ${GENERATED_CODE_DIR} -name '*.java'); do
       cat - ${f} >${f}-with-license <<EOF
-    /*
-     * Licensed to the Apache Software Foundation (ASF) under one or more
-     * contributor license agreements.  See the NOTICE file distributed with
-     * this work for additional information regarding copyright ownership.
-     * The ASF licenses this file to You under the Apache License, Version 2.0
-     * (the "License"); you may not use this file except in compliance with
-     * the License.  You may obtain a copy of the License at
-     *
-     *     http://www.apache.org/licenses/LICENSE-2.0
-     *
-     * Unless required by applicable law or agreed to in writing, software
-     * distributed under the License is distributed on an "AS IS" BASIS,
-     * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-     * See the License for the specific language governing permissions and
-     * limitations under the License.
-     */
+/**
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 EOF
     mv ${f}-with-license ${f}
     done
@@ -125,13 +134,20 @@ copy_changed_files() {
     # Read all the function arguments
     GENERATED_CODE_DIR=$1
     WORKSPACE_SRC_DIR=$2
+    IGNORE_GENERATED_CODE_PATH=$3
 
     echo "Generated sources are in ${GENERATED_CODE_DIR}"
     echo "Destination workspace is in ${WORKSPACE_SRC_DIR}"
 
     # Check if the newly generated files exist in the targetted workspace, if not copy. Only changed files will be synced.
     #  the extra slash to GENERATED_CODE_DIR is needed to ensure the parent directory itself is not copied.
-    rsync -auv ${GENERATED_CODE_DIR}/ ${WORKSPACE_SRC_DIR}
+    if [ -z "$3" ]
+        then
+            rsync -auv ${GENERATED_CODE_DIR}/ ${WORKSPACE_SRC_DIR}
+        else
+            echo "Ignoring generated path ${IGNORE_GENERATED_CODE_PATH}"
+            rsync -auv --exclude ${IGNORE_GENERATED_CODE_PATH} ${GENERATED_CODE_DIR}/ ${WORKSPACE_SRC_DIR}
+    fi
 }
 
 # The function generates the thrift stubs and copies to the specified directory.
@@ -144,6 +160,8 @@ generate_thrift_stubs() {
 
     #Java generation directory
     JAVA_GEN_DIR=${BASE_TARGET_DIR}/gen-java
+
+    BASE_API_DIR=org/apache/airavata/base
 
     # As a precaution remove and previously generated files if exists
     rm -rf ${JAVA_GEN_DIR}
@@ -159,7 +177,11 @@ generate_thrift_stubs() {
     add_license_header $JAVA_GEN_DIR
 
     # Compare the newly generated classes with existing java generated skelton/stub sources and replace the changed ones.
-    copy_changed_files ${JAVA_GEN_DIR} ${COMPONENT_SRC_DIR}
+    copy_changed_files ${JAVA_GEN_DIR} ${COMPONENT_SRC_DIR} ${BASE_API_DIR}
+
+    # This will copy the base API java stubs to airavata-base-api module
+    mkdir -p ${BASE_API_SRC_DIR}/org/apache/airavata/base
+    copy_changed_files ${JAVA_GEN_DIR}/org/apache/airavata/base ${BASE_API_SRC_DIR}/org/apache/airavata/base
 
     echo "Successfully generated new sources, compared against exiting code and replaced the changed files"
 

@@ -52,6 +52,10 @@ public class ApplicationSettings {
     private final static Logger logger = LoggerFactory.getLogger(ApplicationSettings.class);
 
     private static final String SHUTDOWN_STATEGY_STRING="shutdown.strategy";
+
+    // ThriftClientPool Constants
+    private static final String THRIFT_CLIENT_POOL_ABANDONED_REMOVAL_ENABLED = "thrift.client.pool.abandoned.removal.enabled";
+    private static final String THRIFT_CLIENT_POOL_ABANDONED_REMOVAL_LOGGED = "thrift.client.pool.abandoned.removal.logged";
     
     protected static ApplicationSettings INSTANCE;
     public static enum ShutdownStrategy{
@@ -435,8 +439,12 @@ public class ApplicationSettings {
         return getSetting(ServerSettings.IAM_SERVER_URL);
     }
 
-    public static String getGatewayAdminTempPwd() throws ApplicationSettingsException {
-        return getSetting(ServerSettings.NEW_GATEWAY_ADMIN_TEMP_PASSWORD);
+    public static boolean isThriftClientPoolAbandonedRemovalEnabled() {
+        return Boolean.valueOf(getSetting(THRIFT_CLIENT_POOL_ABANDONED_REMOVAL_ENABLED, "false"));
+    }
+
+    public static boolean isThriftClientPoolAbandonedRemovalLogged() {
+        return Boolean.valueOf(getSetting(THRIFT_CLIENT_POOL_ABANDONED_REMOVAL_LOGGED, "false"));
     }
 
     /**
@@ -465,17 +473,24 @@ public class ApplicationSettings {
     }
 
     public static URL loadFile(String fileName) {
-        final URL resource = ApplicationSettings.class.getClassLoader().getResource(fileName);
-        if(resource == null) {
-            if(System.getProperty(AIRAVATA_CONFIG_DIR) != null) {
-                final String airavataConfigDir = System.getProperty(AIRAVATA_CONFIG_DIR);
-                try {
-                     return new File(airavataConfigDir + File.separator + fileName).toURI().toURL();
-                } catch (MalformedURLException e) {
-                    logger.error("Error parsing the file from airavata.config.dir", airavataConfigDir);
+
+        if(System.getProperty(AIRAVATA_CONFIG_DIR) != null) {
+            String airavataConfigDir = System.getProperty(AIRAVATA_CONFIG_DIR);
+            try {
+                airavataConfigDir = airavataConfigDir.endsWith(File.separator) ? airavataConfigDir : airavataConfigDir + File.separator;
+                String filePath = airavataConfigDir + fileName;
+
+                File asfile  = new File(filePath);
+                if (asfile.exists()) {
+
+                    return asfile.toURI().toURL();
                 }
+            } catch (MalformedURLException e) {
+                logger.error("Error parsing the file from airavata.config.dir", airavataConfigDir);
             }
         }
-        return resource;
+
+        return ApplicationSettings.class.getClassLoader().getResource(fileName);
+
     }
 }

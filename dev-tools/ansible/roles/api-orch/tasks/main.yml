@@ -29,11 +29,16 @@
   stat: path="{{ api_orch_dir }}/{{ airavata_dist }}" get_md5=no get_checksum=no
   register: check
 
+- name: check if api-orch systemd unit file is installed
+  stat:
+    path: "{{ api_orch_systemd_unit_file }}"
+  register: systemd_unit_file
+
 - name: stop api-orch
-  command: ./bin/airavata-server-stop.sh -f
-            chdir="{{ api_orch_dir }}/{{ airavata_dist }}/"
-            removes="{{ api_orch_dir }}/{{ airavata_dist }}/bin/server_start_*"
-  when: check.stat.exists == True
+  service: name=apiorch state=stopped
+  when: systemd_unit_file.stat.exists
+  become: yes
+  become_user: root
 
 - name: Delete previous deployments
   file: path="{{ api_orch_dir }}/{{ airavata_dist }}" state=absent
@@ -45,24 +50,17 @@
 
 - name: set api-orch private ip
   set_fact:
-    api_server_host: "{{ ansible_default_ipv4.address }}"
-    orchestrator_host: "{{ ansible_default_ipv4.address }}"
-    cred_store_server_host: "{{ ansible_default_ipv4.address }}"
-    registry_host: "{{ ansible_default_ipv4.address }}"
-    sharing_registry_host: "{{ ansible_default_ipv4.address }}"
-    profile_service_host: "{{ ansible_default_ipv4.address }}"
+    api_server_host: "{{ api_server_bind_host }}"
+    orchestrator_host: "{{ orchestrator_bind_host }}"
+    cred_store_server_host: "{{ cred_store_server_bind_host }}"
+    registry_host: "{{ registry_bind_host }}"
+    sharing_registry_host: "{{ sharing_registry_bind_host }}"
+    profile_service_host: "{{ profile_service_bind_host }}"
 
 
 - name: Copy Airavata server properties file
   template: src=airavata-server.properties.j2
             dest="{{ api_orch_dir }}/{{ airavata_dist }}/bin/airavata-server.properties"
-            owner={{ user }}
-            group={{ group }}
-            mode="u=rw,g=r,o=r"
-
-- name: Copy Gfac configuration file
-  template: src=gfac-config.yaml.j2
-            dest="{{ api_orch_dir }}/{{ airavata_dist }}/bin/gfac-config.yaml"
             owner={{ user }}
             group={{ group }}
             mode="u=rw,g=r,o=r"
@@ -92,16 +90,17 @@
     - "{{ cred_store_port }}/tcp"
     - "{{ registry_port }}/tcp"
     - "{{ profile_service_port }}/tcp"
+    - "{{ sharing_registry_port }}/tcp"
   become_user: root
 
-- name: stop api-orch
-  command: ./bin/airavata-server-stop.sh -f
-           chdir="{{ api_orch_dir }}/{{ airavata_dist }}/"
-           removes="{{ api_orch_dir }}/{{ airavata_dist }}/bin/server_start_*"
+- name: Install api-orch systemd script
+  template: src=apiorch.service.j2
+            dest="{{ api_orch_systemd_unit_file }}"
+  become: yes
+  become_user: root
 
 - name: start api-orch
-  command: ./bin/airavata-server-start.sh api-orch -d -log "{{ api_orch_log_dir }}/output.log"
-           chdir="{{ api_orch_dir }}/{{ airavata_dist }}/"
-           creates="{{ api_orch_dir }}/{{ airavata_dist }}/bin/server_start_*"
-
+  service: name=apiorch state=started enabled=yes daemon_reload=yes
+  become: yes
+  become_user: root
 ...

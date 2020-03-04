@@ -19,18 +19,19 @@
  */
 package org.apache.airavata.sharing.registry;
 
+import org.apache.airavata.common.exception.ApplicationSettingsException;
+import org.apache.airavata.common.utils.ServerSettings;
 import org.apache.airavata.sharing.registry.models.*;
-import org.apache.airavata.sharing.registry.server.ServerMain;
+import org.apache.airavata.sharing.registry.server.SharingRegistryServer;
 import org.apache.airavata.sharing.registry.service.cpi.SharingRegistryService;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.protocol.TProtocol;
+import org.apache.thrift.transport.TSSLTransportFactory;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
-import org.databene.contiperf.junit.ContiPerfRule;
 import org.junit.Assert;
 import org.junit.BeforeClass;
-import org.junit.Rule;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,27 +42,36 @@ import java.util.Arrays;
 public class SharingRegistryServiceTest {
     private final static Logger logger = LoggerFactory.getLogger(SharingRegistryServiceTest.class);
 
-    @Rule
-    public ContiPerfRule i = new ContiPerfRule();
-
     @BeforeClass
-    public static void setUp() throws InterruptedException {
-        ServerMain serverMain = new ServerMain();
-        serverMain.main(new String[]{});
+    public static void setUp() throws Exception {
+        SharingRegistryServer server = new SharingRegistryServer();
+        server.setTestMode(true);
+        server.start();
         Thread.sleep(1000 * 2);
     }
 
 
     @Test
-//    @PerfTest(invocations = 50, threads = 10)
-    public void test() throws TException, InterruptedException {
+    public void test() throws TException, InterruptedException, ApplicationSettingsException {
         String serverHost = "localhost";
         int serverPort = 7878;
 
-        TTransport transport = new TSocket(serverHost, serverPort);
-        transport.open();
-        TProtocol protocol = new TBinaryProtocol(transport);
-        SharingRegistryService.Client sharingServiceClient = new SharingRegistryService.Client(protocol);
+        SharingRegistryService.Client sharingServiceClient;
+        if (!ServerSettings.isSharingTLSEnabled()) {
+            TTransport transport = new TSocket(serverHost, serverPort);
+            transport.open();
+            TProtocol protocol = new TBinaryProtocol(transport);
+            sharingServiceClient = new SharingRegistryService.Client(protocol);
+        }else{
+            TSSLTransportFactory.TSSLTransportParameters params =
+                    new TSSLTransportFactory.TSSLTransportParameters();
+            params.setKeyStore(ServerSettings.getKeyStorePath(), ServerSettings.getKeyStorePassword());
+            params.setTrustStore(ServerSettings.getTrustStorePath(), ServerSettings.getTrustStorePassword());
+
+            TTransport transport = TSSLTransportFactory.getClientSocket(serverHost, serverPort, 10000, params);
+            TProtocol protocol = new TBinaryProtocol(transport);
+            sharingServiceClient = new SharingRegistryService.Client(protocol);
+        }
 
         Domain domain = new Domain();
         //has to be one word
@@ -130,6 +140,35 @@ public class SharingRegistryServiceTest {
 
         sharingServiceClient.createUser(user3);
 
+        User user7 = new User();
+        //required
+        user7.setUserId("test-user-7");
+        //required
+        user7.setUserName("test-user-7");
+        //required
+        user7.setDomainId(domainId);
+        //required
+        user7.setFirstName("John");
+        //required
+        user7.setLastName("Doe");
+        //required
+        user7.setEmail("john.doe@abc.com");
+        //optional - this should be bytes of the users image icon
+        //byte[] icon3 = new byte[10];
+        //user3.setIcon(icon3);
+
+        sharingServiceClient.createUser(user7);
+
+        // Test updates to user and how it affects the user's SINGLE_USER group
+        UserGroup singleUserGroupUser7 = sharingServiceClient.getGroup(domainId, user7.getUserId());
+        Assert.assertEquals(GroupCardinality.SINGLE_USER, singleUserGroupUser7.getGroupCardinality());
+        user7.setFirstName("Johnny");
+        sharingServiceClient.updatedUser(user7);
+        User updatedUser7 = sharingServiceClient.getUser(domainId, user7.getUserId());
+        Assert.assertEquals("Johnny", updatedUser7.getFirstName());
+        singleUserGroupUser7 = sharingServiceClient.getGroup(domainId, user7.getUserId());
+        Assert.assertEquals(GroupCardinality.SINGLE_USER, singleUserGroupUser7.getGroupCardinality());
+
         UserGroup userGroup1 = new UserGroup();
         //required
         userGroup1.setGroupId("test-group-1");
@@ -147,7 +186,7 @@ public class SharingRegistryServiceTest {
         sharingServiceClient.createGroup(userGroup1);
         userGroup1.setDescription("updated description");
         sharingServiceClient.updateGroup(userGroup1);
-        Assert.assertTrue(sharingServiceClient.getGroup(domainId, userGroup1.groupId).description.equals("updated description"));
+        Assert.assertTrue(sharingServiceClient.getGroup(domainId, userGroup1.getGroupId()).getDescription().equals("updated description"));
         Assert.assertTrue(sharingServiceClient.isGroupExists(domainId, "test-group-1"));
 
         UserGroup userGroup2 = new UserGroup();
@@ -168,7 +207,29 @@ public class SharingRegistryServiceTest {
 
         sharingServiceClient.addUsersToGroup(domainId, Arrays.asList("test-user-3"), "test-group-2");
 
+        sharingServiceClient.addUsersToGroup(domainId, Arrays.asList("test-user-7"), "test-group-1");
+
         sharingServiceClient.addChildGroupsToParentGroup(domainId, Arrays.asList("test-group-2"), "test-group-1");
+
+        //Group roles
+        Assert.assertTrue(sharingServiceClient.hasOwnerAccess(domainId, "test-group-1", "test-user-1"));
+
+        // user has admin access
+        Assert.assertTrue(sharingServiceClient.addGroupAdmins(domainId, "test-group-1", Arrays.asList("test-user-7")));
+        Assert.assertTrue(sharingServiceClient.hasAdminAccess(domainId, "test-group-1", "test-user-7"));
+
+        UserGroup getGroup = sharingServiceClient.getGroup(domainId, "test-group-1");
+        Assert.assertTrue(getGroup.getGroupAdmins().size() == 1);
+
+        Assert.assertTrue(sharingServiceClient.removeGroupAdmins(domainId, "test-group-1", Arrays.asList("test-user-7")));
+        Assert.assertFalse(sharingServiceClient.hasAdminAccess(domainId, "test-group-1", "test-user-7"));
+
+        // transfer group ownership
+        sharingServiceClient.addUsersToGroup(domainId, Arrays.asList("test-user-2"), "test-group-1");
+        Assert.assertTrue(sharingServiceClient.transferGroupOwnership(domainId, "test-group-1", "test-user-2"));
+        Assert.assertTrue(sharingServiceClient.hasOwnerAccess(domainId, "test-group-1", "test-user-2"));
+        Assert.assertTrue(sharingServiceClient.transferGroupOwnership(domainId, "test-group-1", "test-user-1"));
+        Assert.assertFalse(sharingServiceClient.hasOwnerAccess(domainId, "test-group-1", "test-user-2"));
 
         PermissionType permissionType1 = new PermissionType();
         //required
@@ -288,7 +349,7 @@ public class SharingRegistryServiceTest {
         searchCriteria.setValue("1");
         searchCriteria.setSearchCondition(SearchCondition.GTE);
         filters.add(searchCriteria);
-        Assert.assertTrue(sharingServiceClient.searchEntities(domainId, "test-user-2", filters, 0, -1).size() == 1);
+        Assert.assertEquals(1, sharingServiceClient.searchEntities(domainId, "test-user-2", filters, 0, -1).size());
 
 
         sharingServiceClient.revokeEntitySharingFromUsers(domainId, "test-project-1", Arrays.asList("test-user-2"), "WRITE");
@@ -354,7 +415,5 @@ public class SharingRegistryServiceTest {
         searchCriteria.setSearchField(EntitySearchField.OWNER_ID);
         filters.add(searchCriteria);
         Assert.assertTrue(sharingServiceClient.searchEntities(domainId, "test-user-2", filters, 0, -1).size() == 0);
-
-        transport.close();
     }
 }

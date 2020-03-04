@@ -46,8 +46,8 @@ jpa.cache.size=-1
 enable.sharing={{enable_sharing}}
 
 # Properties for default user mode
-default.registry.user=admin
-default.registry.password=admin
+default.registry.user={{ default_registry_user }}
+default.registry.password={{ default_registry_password }}
 default.registry.password.hash.method=SHA
 default.registry.gateway={{ default_gateway }}
 super.tenant.gatewayId={{ default_gateway }}
@@ -91,7 +91,7 @@ replicacatalog.validationQuery=SELECT 1 from CONFIGURATION
 #workflowcatalog.jdbc.url=jdbc:derby://localhost:1527/workflow_catalog;create=true;user=airavata;password=airavata
 # MariaDB database configuration
 workflowcatalog.jdbc.driver=org.mariadb.jdbc.Driver
-workflowcatalog.jdbc.url=jdbc:mariadb://{{ db_server }}:3306/{{ replica_catalog }}
+workflowcatalog.jdbc.url=jdbc:mariadb://{{ db_server }}:3306/{{ workflow_catalog }}
 workflowcatalog.jdbc.user={{ db_user }}
 workflowcatalog.jdbc.password={{ db_password }}
 workflowcatalog.validationQuery=SELECT 1 from CONFIGURATION
@@ -115,6 +115,7 @@ sharingcatalog.validationQuery=SELECT 1 from CONFIGURATION
 sharing_server=org.apache.airavata.sharing.registry.server.SharingRegistryServer
 sharing.registry.server.host={{ sharing_registry_host }}
 sharing.registry.server.port={{ sharing_registry_port }}
+sharing.tls.enabled={{ sharing_registry_tls_enabled }}
 
 ###########################################################################
 #  User Profile MongoDB Configuration
@@ -154,6 +155,7 @@ threadpool.size=10
 start.submitter=true
 embedded.mode=true
 enable.validation=true
+host.scheduler=org.apache.airavata.orchestrator.core.schedule.DefaultHostScheduler
 
 ###########################################################################
 #  Registry Server Configurations
@@ -163,17 +165,6 @@ regserver.server.name={{registry_name}}
 regserver.server.host={{registry_host}}
 regserver.server.port={{registry_port}}
 regserver.server.min.threads=50
-
-###########################################################################
-#  GFac Server Configurations
-###########################################################################
-gfac=org.apache.airavata.gfac.server.GfacServer
-gfac.server.name={{ gfac_name }}
-gfac.server.host={{ gfac_host }}
-gfac.server.port={{ gfac_port }}
-gfac.thread.pool.size=50
-host.scheduler=org.apache.airavata.gfac.impl.DefaultHostScheduler
-
 
 
 ###########################################################################
@@ -212,7 +203,7 @@ credential.store.jdbc.driver=org.mariadb.jdbc.Driver
 credential.store.server.host={{ cred_store_server_host }}
 credential.store.server.port={{ cred_store_port }}
 credentialstore=org.apache.airavata.credential.store.server.CredentialStoreServer
-credential.stroe.jdbc.validationQuery=SELECT 1 from CONFIGURATION
+credential.store.jdbc.validationQuery=SELECT 1 from CONFIGURATION
 
 # these properties used by credential store email notifications
 email.server=smtp.googlemail.com
@@ -279,7 +270,7 @@ experiment.launch..queue.name=experiment.launch.queue
 # Zookeeper Server Configuration
 ###########################################################################
 embedded.zk=false
-zookeeper.server.connection={{ zookeeper_url }}
+zookeeper.server.connection={{ zookeeper_connection_url }}
 zookeeper.timeout=30000
 
 ########################################################################
@@ -296,7 +287,7 @@ keystore.path={{ keystores_location }}/{{ keystore_src_path | basename }}
 keystore.password={{ keystore_passwd }}
 #### trust store configuration ####
 trust.store={{ keystores_location }}/{{ client_truststore_src_path | basename }}
-trust.store.password=airavata
+trust.store.password={{ client_truststore_passwd }}
 #### authorization cache related configuration ####
 authz.cache.enabled=true
 authz.cache.manager.class=org.apache.airavata.service.security.authzcache.DefaultAuthzCacheManager
@@ -325,7 +316,6 @@ profile.service.validationQuery=SELECT 1
 # Iam Admin services Configuration
 ###########################################################################
 iam.server.url={{ iam_server_url }}
-new.gateway.admin.temp.password=Password@123
 iam.server.super.admin.username={{ iam_server_super_admin_username }}
 iam.server.super.admin.password={{ iam_server_super_admin_password }}
 
@@ -333,3 +323,9 @@ iam.server.super.admin.password={{ iam_server_super_admin_password }}
 # DB Event Manager Runner
 ###########################################################################
 db_event_manager=org.apache.airavata.db.event.manager.DBEventManagerRunner
+
+###########################################################################
+# ThriftClientPool Configuration
+###########################################################################
+thrift.client.pool.abandoned.removal.enabled={{ thrift_client_pool_abandoned_removal_enabled }}
+thrift.client.pool.abandoned.removal.logged={{ thrift_client_pool_abandoned_removal_logged }}

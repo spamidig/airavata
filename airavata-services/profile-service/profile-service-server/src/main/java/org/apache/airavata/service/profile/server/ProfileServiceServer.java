@@ -1,4 +1,4 @@
-/*
+/**
  *
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
@@ -16,13 +16,16 @@
  * KIND, either express or implied.  See the License for the
  * specific language governing permissions and limitations
  * under the License.
- *
-*/
-
+ */
 package org.apache.airavata.service.profile.server;
 
+import org.apache.airavata.common.utils.DBInitConfig;
+import org.apache.airavata.common.utils.DBInitializer;
 import org.apache.airavata.common.utils.IServer;
 import org.apache.airavata.common.utils.ServerSettings;
+import org.apache.airavata.service.profile.groupmanager.cpi.GroupManagerService;
+import org.apache.airavata.service.profile.groupmanager.cpi.group_manager_cpiConstants;
+import org.apache.airavata.service.profile.handlers.GroupManagerServiceHandler;
 import org.apache.airavata.service.profile.handlers.IamAdminServicesHandler;
 import org.apache.airavata.service.profile.iam.admin.services.cpi.IamAdminServices;
 import org.apache.airavata.service.profile.iam.admin.services.cpi.iam_admin_services_cpiConstants;
@@ -30,6 +33,7 @@ import org.apache.airavata.service.profile.tenant.cpi.profile_tenant_cpiConstant
 import org.apache.airavata.service.profile.handlers.TenantProfileServiceHandler;
 import org.apache.airavata.service.profile.handlers.UserProfileServiceHandler;
 import org.apache.airavata.service.profile.tenant.cpi.TenantProfileService;
+import org.apache.airavata.service.profile.user.core.utils.UserProfileCatalogDBInitConfig;
 import org.apache.airavata.service.profile.user.cpi.UserProfileService;
 import org.apache.airavata.service.profile.user.cpi.profile_user_cpiConstants;
 import org.apache.thrift.TMultiplexedProcessor;
@@ -42,7 +46,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.InetSocketAddress;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.List;
 
 /**
  * Created by goshenoy on 03/08/2017.
@@ -56,6 +62,9 @@ public class ProfileServiceServer implements IServer {
 
     private ServerStatus status;
     private TServer server;
+    private List<DBInitConfig> dbInitConfigs = Arrays.asList(
+        new UserProfileCatalogDBInitConfig()
+    );
 
     public ProfileServiceServer() {
         setStatus(ServerStatus.STOPPED);
@@ -81,6 +90,13 @@ public class ProfileServiceServer implements IServer {
 
         try {
             setStatus(ServerStatus.STARTING);
+
+            logger.info("Initialing profile service databases...");
+            for (DBInitConfig dbInitConfig : dbInitConfigs) {
+                DBInitializer.initializeDB(dbInitConfig);
+            }
+            logger.info("Profile service databases initialized successfully");
+
             final int serverPort = Integer.parseInt(ServerSettings.getProfileServiceServerPort());
             final String serverHost = ServerSettings.getProfileServiceServerHost();
 
@@ -88,12 +104,14 @@ public class ProfileServiceServer implements IServer {
             UserProfileService.Processor userProfileProcessor = new UserProfileService.Processor(new UserProfileServiceHandler());
             TenantProfileService.Processor teneantProfileProcessor = new TenantProfileService.Processor(new TenantProfileServiceHandler());
             IamAdminServices.Processor iamAdminServicesProcessor = new IamAdminServices.Processor(new IamAdminServicesHandler());
+            GroupManagerService.Processor groupmanagerProcessor = new GroupManagerService.Processor(new GroupManagerServiceHandler());
 
             // create a multiplexed processor
             TMultiplexedProcessor profileServiceProcessor = new TMultiplexedProcessor();
             profileServiceProcessor.registerProcessor(profile_user_cpiConstants.USER_PROFILE_CPI_NAME, userProfileProcessor);
             profileServiceProcessor.registerProcessor(profile_tenant_cpiConstants.TENANT_PROFILE_CPI_NAME, teneantProfileProcessor);
             profileServiceProcessor.registerProcessor(iam_admin_services_cpiConstants.IAM_ADMIN_SERVICES_CPI_NAME, iamAdminServicesProcessor);
+            profileServiceProcessor.registerProcessor(group_manager_cpiConstants.GROUP_MANAGER_CPI_NAME, groupmanagerProcessor);
 
             TServerTransport serverTransport;
 
